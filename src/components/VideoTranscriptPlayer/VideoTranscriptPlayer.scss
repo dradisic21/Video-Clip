@@ -1,0 +1,68 @@
+.video-transcrription-player {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+
+  .content {
+    width: 100%;
+    max-width: 1920px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    flex-wrap: wrap;
+    margin: 0 auto;
+    gap: 30px;
+
+    .video-container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+
+      .plyr {
+        width: 100%;
+        max-width: 800px;
+        height: 520px;
+        border-radius: 10px;
+      }
+
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        padding: 40px 0;
+      }
+
+      .btn {
+        width: auto;
+        background-color: rgb(255, 123, 79);
+        color: white;
+        font-size: 16px;
+        padding: 10px 25px;
+        border-radius: 10px;
+        outline: none;
+        border: none;
+        cursor: pointer;
+      }
+    }
+
+    .transcript {
+      width: 100%;
+      max-width: 500px;
+      max-height: 620px;
+      overflow: auto;
+      box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+        rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+      border-radius: 10px;
+
+      .transcript-content {
+        padding: 10px;
+
+        .transcript-title {
+          color: rgb(63, 63, 63);
+        }
+      }
+    }
+  }
+}
