@@ -42,7 +42,8 @@ const formatTime = (seconds) => {
 };
 
 export function VideoTranscriptPlayer() {
-  const [currentVideo, setCurrentVideo] = useState(videos[0]);
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const [currentVideo, setCurrentVideo] = useState(videos[activeVideoIndex]);
   const [captions, setCaptions] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef(null);
@@ -75,7 +76,7 @@ export function VideoTranscriptPlayer() {
         }
       };
     }
-  }, []);
+  }, [currentTime]);
 
   const handleCaptionClick = (startTime) => {
     if (videoRef.current) {
@@ -84,34 +85,45 @@ export function VideoTranscriptPlayer() {
     }
   };
 
+  const setActiveVideo = (index) => {
+    setActiveVideoIndex(index);
+    setCurrentVideo(videos[index]);
+  };
+
   return (
     <div className="video-transcrription-player">
       <div className="content">
         <div className="video-container">
-          <video
-            key={currentVideo.id}
-            preload="auto"
-            ref={videoRef}
-            className="video-player"
-            controls
-          >
-            <source src={currentVideo.videoSrc} type="video/mp4" />
-            <track
-              label="English"
-              kind="subtitles"
-              srcLang="en"
-              src={currentVideo.captionsSrc}
-              default
-            />
-          </video>
+          <div className="video-player_content">
+            <video
+              key={currentVideo.id}
+              preload="auto"
+              ref={videoRef}
+              className="video-player"
+              controls
+            >
+              <source src={currentVideo.videoSrc} type="video/mp4" />
+              <track
+                label="English"
+                kind="subtitles"
+                srcLang="en"
+                src={currentVideo.captionsVtt}
+                default
+              />
+            </video>
+          </div>
+          
 
           <div className="button-container">
-            <button onClick={() => setCurrentVideo(videos[0])} className="btn">
-              Clip 1
-            </button>
-            <button onClick={() => setCurrentVideo(videos[1])} className="btn">
-              Clip 2
-            </button>
+          {videos.map((video, index) => (
+              <button
+                key={video.id}
+                onClick={() => setActiveVideo(index)}
+                className={`btn ${index === activeVideoIndex ? "active" : ""}`}
+              >
+                {video.title}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -130,7 +142,7 @@ export function VideoTranscriptPlayer() {
               >
                 <div className="transcript-captions">
                   <span>{formatTime(caption.startTime)}</span>&nbsp;&nbsp;
-                  <span>{caption.text}</span>
+                  <span className="captions-text">{caption.text}</span>
                 </div>
               </div>
             ))}
