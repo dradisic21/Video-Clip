@@ -62,7 +62,20 @@ export function VideoTranscriptPlayer() {
     fetchCaptions();
   }, [currentVideo]);
 
- 
+  useEffect(() => {
+    if (videoRef.current) {
+      const updateTime = () => {
+        setCurrentTime(videoRef.current.currentTime);
+      };
+      videoRef.current.addEventListener("timeupdate", updateTime);
+      return () => {
+        if (videoRef.current) {
+          // eslint-disable-next-line
+          videoRef.current.removeEventListener("timeupdate", updateTime);
+        }
+      };
+    }
+  }, []);
 
   const handleCaptionClick = (startTime) => {
     if (videoRef.current) {
@@ -109,7 +122,7 @@ export function VideoTranscriptPlayer() {
               <div
                 key={index}
                 className={`transcript-line ${
-                  currentTime >= caption.startTime && currentTime <= caption.end
+                  currentTime >= caption.startTime && currentTime <= caption.endTime
                     ? "active"
                     : ""
                 }`}
