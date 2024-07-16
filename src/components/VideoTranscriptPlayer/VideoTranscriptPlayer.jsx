@@ -1,20 +1,59 @@
-import React, { useEffect, useState } from "react";
-import Plyr from "plyr-react";
-import "plyr-react/plyr.css";
+import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
 import { videos } from "../../services/videos";
 import "./VideoTranscriptPlayer.scss";
+
+function parseSRT(data) {
+  const subtitleBlocks = data.trim().split(/\n\s*\n/);
+  const subtitles = subtitleBlocks.map((subtitleBlock) => {
+    const lines = subtitleBlock.split("\n");
+    const timeString = lines[1];
+    const textLines = lines.slice(2);
+    const [startTimeString, endTimeString] = timeString.split(" --> ");
+    const text = textLines
+      .join(" ")
+      .replace(/<[^>]*>/g, "")
+      .replace(/\{.*?\}/g, "");
+
+    return {
+      startTime: parseSRTTime(startTimeString),
+      endTime: parseSRTTime(endTimeString),
+      text,
+    };
+  });
+  return subtitles;
+}
+
+const parseSRTTime = (timeString) => {
+  const [hours, minutes, seconds] = timeString.split(":");
+  const [secs, millis] = seconds.split(",");
+
+  return (
+    parseInt(hours) * 3600 +
+    parseInt(minutes) * 60 +
+    parseFloat(`${secs}.${millis}`)
+  );
+};
+
+const formatTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+};
 
 export function VideoTranscriptPlayer() {
   const [currentVideo, setCurrentVideo] = useState(videos[0]);
   const [captions, setCaptions] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     const fetchCaptions = async () => {
       try {
-        const response = await fetch(currentVideo.captionsSrc);
-        const data = await response.text();
-        setCaptions(parseSRT(data));
+        const response = await axios.get(currentVideo.captionsSrc);
+        const parsedCaptions = parseSRT(response.data);
+        console.log(response.data)
+        setCaptions(parsedCaptions);
       } catch (error) {
         console.error("Error fetching captions:", error);
       }
@@ -23,83 +62,35 @@ export function VideoTranscriptPlayer() {
     fetchCaptions();
   }, [currentVideo]);
 
+ 
 
-  const parseSRT = (data) => {
-    const entries = [];
-    const regex =
-      /(\d+)\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(.+?)(?=\n{2}|\n*$)/gs;
-
-    let match;
-
-    while ((match = regex.exec(data)) !== null) {
-      entries.push({
-        start: parseSRTTime(match[2]),
-        end: parseSRTTime(match[3]),
-        text: match[4].trim().replace(/\n/g, " "),
-      });
+  const handleCaptionClick = (startTime) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = startTime;
+      videoRef.current.play();
     }
-    return entries;
-  };
-
-  const parseSRTTime = (time) => {
-    const [hours, minutes, seconds] = time.split(":");
-    const [secs, ms] = seconds.split(",");
-    return (
-      parseInt(hours) * 3600 +
-      parseInt(minutes) * 60 +
-      parseInt(secs) +
-      parseInt(ms) / 1000
-    );
-  };
-
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
-  const handleTimeUpdate = (event) => {
-    setCurrentTime(event.target.currentTime);
   };
 
   return (
     <div className="video-transcrription-player">
       <div className="content">
         <div className="video-container">
-          <Plyr
-            source={{
-              type: "video",
-              sources: [
-                {
-                  src: currentVideo.videoSrc,
-                  type: "video/mp4",
-                },
-              ],
-              track: [
-                {
-                  kind: "captions",
-                  src: currentVideo.captionsSrc,
-                  srcLang: "en",
-                  label: "English",
-                  default: true,
-                },
-              ],
-            }}
-            options={{
-              controls: [
-                "play",
-                "progress",
-                "current-time",
-                "mute",
-                "volume",
-                "captions",
-                "fullscreen",
-                "settings",
-              ],
-              captions: { active: true, update: true, language: "en" },
-            }}
-            onProgress={handleTimeUpdate}
-          />
+          <video
+            key={currentVideo.id}
+            preload="auto"
+            ref={videoRef}
+            className="video-player"
+            controls
+          >
+            <source src={currentVideo.videoSrc} type="video/mp4" />
+            <track
+              label="English"
+              kind="subtitles"
+              srcLang="en"
+              src={currentVideo.captionsSrc}
+              default
+            />
+          </video>
 
           <div className="button-container">
             <button onClick={() => setCurrentVideo(videos[0])} className="btn">
@@ -118,16 +109,16 @@ export function VideoTranscriptPlayer() {
               <div
                 key={index}
                 className={`transcript-line ${
-                  currentTime >= caption.start && currentTime <= caption.end
+                  currentTime >= caption.startTime && currentTime <= caption.end
                     ? "active"
                     : ""
                 }`}
-                onClick={() => setCurrentTime(caption.start)}
+                onClick={() => handleCaptionClick(caption.startTime)}
               >
-                <span>
-                  {formatTime(caption.start)} - {formatTime(caption.end)}
-                </span>
-                <span>{caption.text}</span>
+                <div className="transcript-captions">
+                  <span>{formatTime(caption.startTime)}</span>&nbsp;&nbsp;
+                  <span>{caption.text}</span>
+                </div>
               </div>
             ))}
           </div>
